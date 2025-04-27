@@ -89,7 +89,7 @@ def rotate_pages(reader: PdfReader, pages: list):
     writer = PdfWriter()
     try:
         angle = int(input('На сколько градусов повернуть (90, 180, 270)? - '))
-        if angle not in (90, 180, 270):
+        if angle not in ('90', '180', '270'):
             print('Ошибка при вводе угла поворота стрницы.')
             angle = 0
     except Exception as e:
@@ -138,60 +138,82 @@ def merge_files(file_name: str):
     return merger
 
 
+def split_file(reader: PdfReader, file_name: str):
+    base_name = os.path.splitext(file_name)[0]
+    for page_num in range(len(reader.pages)):
+        page: PageObject = reader.pages[page_num]
+        writer = PdfWriter()
+        writer.add_page(page)
+        file_path = f'{base_name}_page_{page_num + 1}.pdf'
+        with open(file_path, 'wb'):
+            writer.write(file_path)
+        writer.close()
+
+
 def main():
     """Главная функция модуля."""
 
-    file_name = file_open()
-    short_name = os.path.splitext(os.path.basename(file_name))[0]
-    if not file_name:
-        return
-    if input('Открыть файл для просмотра в браузере? (1-да)') == '1':
-        try:
-            webbrowser.open(file_name)
-        except Exception as e:
-            print(f'Ошибка открытия файла в браузере по умолчанию: {e}')
-    with open(file_name, 'rb') as file:
-        print(f'Открыт файл: {file_name}.')
-        reader = PdfReader(file)
-        print(
-            'Что сделать с файлом? \n'
-            '1 - Выделить страницы и сшить в новый файл; \n'
-            '2 - Выбрать страницы и повернуть; \n'
-            '3 - Удалить выбранные страницы; \n'
-            '4 - Присоединить файлы к текущему; \n'
-            '0 - Выйти'
-        )
-        choice = input('Ваш выбор? - ')
-        if choice == '1':
-            pages = select_pages(reader)
-            new_file: PdfWriter = make_file(
-                reader,
-                pages
+    file_name: str | None = None
+    choice = '6'
+    while choice != 0:
+        if choice == '6':
+            file_name = file_open()
+            short_name = os.path.splitext(os.path.basename(file_name))[0]
+            if not file_name:
+                return
+            if input('Открыть файл для просмотра? (1-да)') == '1':
+                try:
+                    webbrowser.open(file_name)
+                except Exception as e:
+                    print(f'Ошибка открытия файла на просмотр: {e}')
+        with open(file_name, 'rb') as file:
+            print(f'Открыт для работы файл: {file_name}.')
+            reader = PdfReader(file)
+            print(
+                'Что сделать с файлом? \n'
+                '1 - Выделить страницы и сшить в новый файл; \n'
+                '2 - Выбрать страницы и повернуть; \n'
+                '3 - Удалить выбранные страницы; \n'
+                '4 - Присоединить файлы к текущему; \n'
+                '5 - Разбить файл на страницы; \n'
+                '6 - Выбрать новый файл; \n'
+                '0 - Выйти.'
             )
-            file_save(new_file, short_name, 'selected')
-            new_file.close()
-        elif choice == '2':
-            pages = select_pages(reader)
-            new_file: PdfWriter = rotate_pages(
-                reader,
-                pages
-            )
-            file_save(new_file, short_name, 'rotated')
-            new_file.close()
-        elif choice == '3':
-            pages = select_pages(reader)
-            new_file: PdfWriter = delete_pages(
-                reader,
-                pages
-            )
-            file_save(new_file, short_name, 'cleared')
-            new_file.close()
-        elif choice == '4':
-            new_file: PdfMerger = merge_files(file_name)
-            file_save(new_file, short_name, 'merged')
-            new_file.close()
-        elif choice == '0':
-            return
+            choice = input('Ваш выбор? - ')
+            if choice == '1':
+                pages = select_pages(reader)
+                new_file: PdfWriter = make_file(
+                    reader,
+                    pages
+                )
+                file_save(new_file, short_name, 'selected')
+                new_file.close()
+            elif choice == '2':
+                pages = select_pages(reader)
+                new_file: PdfWriter = rotate_pages(
+                    reader,
+                    pages
+                )
+                file_save(new_file, short_name, 'rotated')
+                new_file.close()
+            elif choice == '3':
+                pages = select_pages(reader)
+                new_file: PdfWriter = delete_pages(
+                    reader,
+                    pages
+                )
+                file_save(new_file, short_name, 'cleared')
+                new_file.close()
+            elif choice == '4':
+                new_file: PdfMerger = merge_files(file_name)
+                file_save(new_file, short_name, 'merged')
+                new_file.close()
+            elif choice == '5':
+                split_file(reader, file_name)
+            elif choice == '6':
+                continue
+            elif choice == '0':
+                return
 
 
 if __name__ == '__main__':
